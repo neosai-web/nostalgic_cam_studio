@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostalgic Cam Studio - オールドコンデジ風写真加工</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- heic2any library for handling iPhone HEIC/HEIF format -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .font-digital {
+            font-family: 'Share Tech Mono', 'DotGothic16', monospace;
+        }
+        body {
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-black">
+
+    <header class="bg-[#181818] border-b border-[#2c2c2c] sticky top-0 z-50 px-4 py-3 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-amber-600 p-2 rounded-lg text-black shadow-inner flex items-center justify-center font-bold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider text-amber-500 font-digital">NOSTALGIC CAM STUDIO</h1>
+                    <p class="text-xs text-neutral-400">2000年代初期CCDコンデジ・質感シミュレーター</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-950 text-amber-400 border border-amber-800/50">
+                    <span class="w-2 h-2 mr-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                    CCD Engine v1.2 (HEIC対応)
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Image Preview Area (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+            <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-xl overflow-hidden min-h-[400px] sm:min-h-[500px]">
+                
+                <!-- Placeholder when no image is loaded -->
+                <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#181818]/90 z-10 transition-opacity duration-300">
+                    <div class="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mb-4 text-neutral-400 border border-neutral-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-bold text-neutral-200 mb-1">写真を選択してください</h3>
+                    <p class="text-xs text-neutral-400 mb-4 max-w-xs">iPhoneのHEIC画像や各種写真ファイル（JPEG/PNG等）をアップロードできます。</p>
+                    <label class="cursor-pointer bg-amber-600 hover:bg-amber-500 text-black font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-lg active:scale-95 inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        ファイルを選択
+                        <input type="file" id="imageUpload" accept="image/*,.heic,.heif" class="hidden">
+                    </label>
+                </div>
+
+                <!-- Canvas Container -->
+                <div class="w-full h-full flex items-center justify-center overflow-auto relative">
+                    <canvas id="previewCanvas" class="max-w-full max-h-[600px] object-contain rounded shadow-lg hidden"></canvas>
+                </div>
+
+                <!-- Loading Overlay -->
+                <div id="loadingOverlay" class="absolute inset-0 bg-black/75 backdrop-blur-sm z-20 flex flex-col items-center justify-center hidden">
+                    <div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <p id="loadingText" class="text-xs text-amber-400 font-digital tracking-widest uppercase">Processing CCD Filter...</p>
+                </div>
+            </div>
+
+            <!-- Action Toolbar -->
+            <div id="actionToolbar" class="flex flex-wrap items-center justify-between gap-3 bg-[#1c1c1c] border border-[#2d2d2d] p-3 rounded-2xl hidden">
+                <label class="cursor-pointer bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium px-4 py-2 rounded-xl transition border border-neutral-700 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    別の写真を選ぶ
+                    <input type="file" id="imageUploadSub" accept="image/*,.heic,.heif" class="hidden">
+                </label>
+
+                <button id="downloadBtn" class="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-lg active:scale-95 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    保存してダウンロード
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Column: Parameter Controls Area (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-4">
+            <div class="bg-[#1c1c1c] border border-[#2d2d2d] rounded-2xl p-5 shadow-xl flex flex-col gap-5">
+                
+                <div class="border-b border-[#2d2d2d] pb-3 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-amber-500 uppercase tracking-wider font-digital flex items-center gap-2">
+                        <span class="w-2 h-2 bg-amber-500 rounded-sm"></span>
+                        Camera Parameters
+                    </h2>
+                    <button id="resetBtn" class="text-xs text-neutral-400 hover:text-white underline transition">
+                        設定をリセット
+                    </button>
+                </div>
+
+                <!-- Quick Presets -->
+                <div>
+                    <label class="text-xs font-medium text-neutral-300 block mb-2">クイックプリセット</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" class="preset-btn bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs py-2 rounded-xl text-center transition font-medium text-amber-400" data-preset="standard">スタンダード</button>
+                        <button type="button" class="preset-btn bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs py-2 rounded-xl text-center transition font-medium" data-preset="cyber_2000">2000年代初頭</button>
+                        <button type="button" class="preset-btn bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs py-2 rounded-xl text-center transition font-medium" data-preset="sunset_amber">夕暮れレトロ</button>
+                    </div>
+                </div>
+
+                <!-- Sliders -->
+                <div class="space-y-4">
+                    <!-- 1. Sharpness -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-neutral-300">輪郭シャープネス（ギザギザ感）</span>
+                            <span id="valSharpness" class="text-amber-400 font-digital">1.1</span>
+                        </div>
+                        <input type="range" id="paramSharpness" min="0" max="2.5" step="0.1" value="1.1" class="w-full accent-amber-500 bg-neutral-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 2. Contrast -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-neutral-300">コントラスト（明暗差）</span>
+                            <span id="valContrast" class="text-amber-400 font-digital">1.1</span>
+                        </div>
+                        <input type="range" id="paramContrast" min="0.8" max="1.6" step="0.05" value="1.1" class="w-full accent-amber-500 bg-neutral-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 3. RGB Boost -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-neutral-300">原色彩度（赤・青・緑の鮮やかさ）</span>
+                            <span id="valRgbBoost" class="text-amber-400 font-digital">1.35</span>
+                        </div>
+                        <input type="range" id="paramRgbBoost" min="1.0" max="2.0" step="0.05" value="1.35" class="w-full accent-amber-500 bg-neutral-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 4. Color Temp -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-neutral-300">色温度（黄み・青み）</span>
+                            <span id="valTemp" class="text-amber-400 font-digital">+6</span>
+                        </div>
+                        <input type="range" id="paramTemp" min="-50" max="50" step="1" value="6" class="w-full accent-amber-500 bg-neutral-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 5. Grain -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-neutral-300">粒状感（グレインノイズ）</span>
+                            <span id="valGrain" class="text-amber-400 font-digital">10</span>
+                        </div>
+                        <input type="range" id="paramGrain" min="0" max="50" step="1" value="10" class="w-full accent-amber-500 bg-neutral-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 6. Color Noise -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-neutral-300">暗部カラーノイズ（高感度偽色）</span>
+                            <span id="valColorNoise" class="text-amber-400 font-digital">8</span>
+                        </div>
+                        <input type="range" id="paramColorNoise" min="0" max="40" step="1" value="8" class="w-full accent-amber-500 bg-neutral-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Date Stamp Section -->
+                <div class="border-t border-[#2d2d2d] pt-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-medium text-neutral-300 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            デジカメ日付スタンプ
+                        </label>
+                        <input type="checkbox" id="stampEnabled" checked class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+                    </div>
+
+                    <div id="stampOptionsContainer" class="space-y-3 bg-[#151515] p-3 rounded-xl border border-[#262626]">
+                        <div>
+                            <label class="text-[11px] text-neutral-400 block mb-1">日付テキスト</label>
+                            <input type="text" id="stampText" value="'04 10. 24" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-1.5 text-xs text-amber-500 font-digital focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[11px] text-neutral-400 block mb-1">カラー</label>
+                                <select id="stampColor" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1.5 text-xs text-neutral-200 focus:outline-none focus:border-amber-500">
+                                    <option value="#ff8800">オレンジ（定番）</option>
+                                    <option value="#ffcc00">イエロー</option>
+                                    <option value="#ff4444">レッド</option>
+                                    <option value="#00ffcc">シアン</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-neutral-400 block mb-1">フォント</label>
+                                <select id="stampFont" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1.5 text-xs text-neutral-200 focus:outline-none focus:border-amber-500">
+                                    <option value="Share Tech Mono">Share Tech Mono</option>
+                                    <option value="DotGothic16">DotGothic16 (ドット風)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-4 text-xs text-neutral-500 border-t border-[#222] mt-6">
+        <p>&copy; 2004-2026 Nostalgic Cam Studio. All retro rights reserved.</p>
+    </footer>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const imageUploadSub = document.getElementById('imageUploadSub');
+        const placeholder = document.getElementById('placeholder');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const actionToolbar = document.getElementById('actionToolbar');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const paramSharpness = document.getElementById('paramSharpness');
+        const paramContrast = document.getElementById('paramContrast');
+        const paramRgbBoost = document.getElementById('paramRgbBoost');
+        const paramTemp = document.getElementById('paramTemp');
+        const paramGrain = document.getElementById('paramGrain');
+        const paramColorNoise = document.getElementById('paramColorNoise');
+
+        const valSharpness = document.getElementById('valSharpness');
+        const valContrast = document.getElementById('valContrast');
+        const valRgbBoost = document.getElementById('valRgbBoost');
+        const valTemp = document.getElementById('valTemp');
+        const valGrain = document.getElementById('valGrain');
+        const valColorNoise = document.getElementById('valColorNoise');
+
+        const stampEnabled = document.getElementById('stampEnabled');
+        const stampOptionsContainer = document.getElementById('stampOptionsContainer');
+        const stampText = document.getElementById('stampText');
+        const stampColor = document.getElementById('stampColor');
+        const stampFont = document.getElementById('stampFont');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+
+        let originalImage = null;
+        let isProcessing = false;
+        let currentObjectURL = null;
+
+        // Robust file handler with HEIC/HEIF conversion support
+        async function handleImageUpload(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+
+            loadingText.textContent = "Loading Image...";
+            loadingOverlay.classList.remove('hidden');
+
+            try {
+                // Check if file is HEIC/HEIF or has .heic extension
+                const fileName = file.name.toLowerCase();
+                if (fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif') {
+                    loadingText.textContent = "Converting HEIC Image...";
+                    const convertedBlob = await heic2any({
+                        blob: file,
+                        toType: "image/jpeg",
+                        quality: 0.9
+                    });
+                    file = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                }
+
+                if (currentObjectURL) {
+                    URL.revokeObjectURL(currentObjectURL);
+                }
+
+                currentObjectURL = URL.createObjectURL(file);
+                const img = new Image();
+
+                img.onload = function() {
+                    originalImage = img;
+                    placeholder.classList.add('opacity-0', 'pointer-events-none');
+                    previewCanvas.classList.remove('hidden');
+                    actionToolbar.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        placeholder.style.display = 'none';
+                        processImage();
+                    }, 50);
+                };
+
+                img.onerror = function() {
+                    loadingOverlay.classList.add('hidden');
+                    alert("画像の読み込みに失敗しました。別の画像をお試しください。");
+                };
+
+                img.src = currentObjectURL;
+
+            } catch (err) {
+                console.error("HEIC conversion error:", err);
+                loadingOverlay.classList.add('hidden');
+                alert("HEICファイルの変換に失敗しました。JPEGまたはPNG画像をお試しください。");
+            }
+
+            e.target.value = '';
+        }
+
+        imageUpload.addEventListener('change', handleImageUpload);
+        imageUploadSub.addEventListener('change', handleImageUpload);
+
+        // Event listeners for parameters
+        const inputs = [paramSharpness, paramContrast, paramRgbBoost, paramTemp, paramGrain, paramColorNoise];
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                updateValueLabels();
+                debounceProcess();
+            });
+        });
+
+        stampEnabled.addEventListener('change', () => {
+            stampOptionsContainer.style.opacity = stampEnabled.checked ? '1' : '0.5';
+            processImage();
+        });
+
+        stampText.addEventListener('input', debounceProcess);
+        stampColor.addEventListener('change', processImage);
+        stampFont.addEventListener('change', processImage);
+
+        function updateValueLabels() {
+            valSharpness.textContent = paramSharpness.value;
+            valContrast.textContent = paramContrast.value;
+            valRgbBoost.textContent = paramRgbBoost.value;
+            valTemp.textContent = (paramTemp.value > 0 ? '+' : '') + paramTemp.value;
+            valGrain.textContent = paramGrain.value;
+            valColorNoise.textContent = paramColorNoise.value;
+        }
+
+        let timeoutId = null;
+        function debounceProcess() {
+            if (isProcessing) return;
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                processImage();
+            }, 30);
+        }
+
+        // Preset switching
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = btn.getAttribute('data-preset');
+                if (preset === 'standard') {
+                    paramSharpness.value = 1.1;
+                    paramContrast.value = 1.1;
+                    paramRgbBoost.value = 1.35;
+                    paramTemp.value = 8;
+                    paramGrain.value = 15;
+                    paramColorNoise.value = 10;
+                } else if (preset === 'cyber_2000') {
+                    paramSharpness.value = 1.8;
+                    paramContrast.value = 1.25;
+                    paramRgbBoost.value = 1.45;
+                    paramTemp.value = 25;
+                    paramGrain.value = 25;
+                    paramColorNoise.value = 20;
+                } else if (preset === 'sunset_amber') {
+                    paramSharpness.value = 1.3;
+                    paramContrast.value = 1.2;
+                    paramRgbBoost.value = 1.35;
+                    paramTemp.value = 40;
+                    paramGrain.value = 15;
+                    paramColorNoise.value = 10;
+                }
+                updateValueLabels();
+                processImage();
+            });
+        });
+
+        resetBtn.addEventListener('click', () => {
+            paramSharpness.value = 1.1;
+            paramContrast.value = 1.1;
+            paramRgbBoost.value = 1.35;
+            paramTemp.value = 8;
+            paramGrain.value = 15;
+            paramColorNoise.value = 10;
+            updateValueLabels();
+            processImage();
+        });
+
+        // Core CCD & Retro Filter Engine
+        function processImage() {
+            if (!originalImage) return;
+            isProcessing = true;
+            loadingText.textContent = "Processing CCD Filter...";
+            loadingOverlay.classList.remove('hidden');
+
+            requestAnimationFrame(() => {
+                const canvas = previewCanvas;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                // ① 200万画素シミュレーション（長辺1600pxに自動リサイズ）
+                const targetLongSide = 1600;
+                let w = originalImage.naturalWidth;
+                let h = originalImage.naturalHeight;
+
+                if (w > h) {
+                    if (w > targetLongSide) {
+                        h = Math.round((h * targetLongSide) / w);
+                        w = targetLongSide;
+                    }
+                } else {
+                    if (h > targetLongSide) {
+                        w = Math.round((w * targetLongSide) / h);
+                        h = targetLongSide;
+                    }
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+
+                ctx.drawImage(originalImage, 0, 0, w, h);
+
+                let imgData = ctx.getImageData(0, 0, w, h);
+                let data = imgData.data;
+
+                const contrastVal = parseFloat(paramContrast.value);
+                const rgbBoostVal = parseFloat(paramRgbBoost.value);
+                const tempVal = parseInt(paramTemp.value);
+                const grainVal = parseInt(paramGrain.value);
+                const colorNoiseVal = parseInt(paramColorNoise.value);
+
+                // ② 色調・階調・ホワイトバランス・ノイズ処理
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+
+                    r += tempVal * 1.2;
+                    b -= tempVal * 0.8;
+
+                    r = ((r / 255 - 0.5) * contrastVal + 0.5) * 255;
+                    g = ((g / 255 - 0.5) * contrastVal + 0.5) * 255;
+                    b = ((b / 255 - 0.5) * contrastVal + 0.5) * 255;
+
+                    let avg = (r + g + b) / 3;
+                    r = avg + (r - avg) * rgbBoostVal;
+                    g = avg + (g - avg) * rgbBoostVal;
+                    b = avg + (b - avg) * rgbBoostVal;
+
+                    if (avg < 80 && colorNoiseVal > 0) {
+                        let noiseFactor = (1 - avg / 80) * colorNoiseVal;
+                        r += (Math.random() - 0.45) * noiseFactor * 3;
+                        g += (Math.random() - 0.55) * noiseFactor * 3;
+                        b += (Math.random() - 0.4) * noiseFactor * 3;
+                    }
+
+                    if (grainVal > 0) {
+                        let grain = (Math.random() - 0.5) * grainVal * 2.5;
+                        r += grain;
+                        g += grain;
+                        b += grain;
+                    }
+
+                    data[i]     = r < 0 ? 0 : (r > 255 ? 255 : r);
+                    data[i + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
+                    data[i + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
+                }
+
+                ctx.putImageData(imgData, 0, 0);
+
+                // ③ シャープネスフィルター（輪郭強調）
+                const sharpnessVal = parseFloat(paramSharpness.value);
+                if (sharpnessVal > 0) {
+                    applySharpen(ctx, w, h, sharpnessVal);
+                }
+
+                // ④ 日付スタンプ描画
+                if (stampEnabled.checked) {
+                    drawDateStamp(ctx, w, h);
+                }
+
+                loadingOverlay.classList.add('hidden');
+                isProcessing = false;
+            });
+        }
+
+        function applySharpen(ctx, width, height, amount) {
+            const imgData = ctx.getImageData(0, 0, width, height);
+            const src = imgData.data;
+            const output = ctx.createImageData(width, height);
+            const dst = output.data;
+
+            const weight = amount;
+            const center = 1 + 4 * weight;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    
+                    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                        dst[idx] = src[idx];
+                        dst[idx+1] = src[idx+1];
+                        dst[idx+2] = src[idx+2];
+                        dst[idx+3] = src[idx+3];
+                        continue;
+                    }
+
+                    for (let c = 0; c < 3; c++) {
+                        let val = src[idx + c] * center 
+                                - src[((y - 1) * width + x) * 4 + c] * weight
+                                - src[((y + 1) * width + x) * 4 + c] * weight
+                                - src[(y * width + (x - 1)) * 4 + c] * weight
+                                - src[(y * width + (x + 1)) * 4 + c] * weight;
+                        
+                        dst[idx + c] = val < 0 ? 0 : (val > 255 ? 255 : val);
+                    }
+                    dst[idx + 3] = src[idx + 3];
+                }
+            }
+            ctx.putImageData(output, 0, 0);
+        }
+
+        function drawDateStamp(ctx, width, height) {
+            const text = stampText.value || "'04 10. 24";
+            const color = stampColor.value;
+            const fontName = stampFont.value;
+
+            const fontSize = Math.max(20, Math.round(width * 0.035));
+            ctx.font = `bold ${fontSize}px '${fontName}', monospace`;
+            ctx.textBaseline = 'bottom';
+            ctx.textAlign = 'right';
+
+            const paddingRight = Math.round(width * 0.04);
+            const paddingBottom = Math.round(height * 0.03);
+            const x = width - paddingRight;
+            const y = height - paddingBottom;
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+
+            ctx.fillStyle = color;
+            ctx.fillText(text, x, y);
+
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (!originalImage) return;
+            
+            const link = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            link.download = `nostalgic_cam_${dateStr}.jpg`;
+            link.href = previewCanvas.toDataURL('image/jpeg', 0.92);
+            link.click();
+        });
+    </script>
+</body>
+</html>
